@@ -1,0 +1,1996 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>策略观察台 - 前端设计稿</title>
+  <style>
+    :root {
+      --bg: #f5f1ea;
+      --bg-strong: #ece3d5;
+      --panel: #fffdf8;
+      --panel-soft: #f7f2e8;
+      --text: #2b2418;
+      --muted: #726655;
+      --brand: #c35b2c;
+      --brand-soft: #f2b18f;
+      --ok: #2f8f5b;
+      --warn: #cf8b27;
+      --danger: #c74334;
+      --cold: #2a6da5;
+      --line: #e8ddcc;
+      --shadow: 0 12px 28px rgba(58, 38, 9, 0.09);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Source Han Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 15%, #fbead8 0%, rgba(251, 234, 216, 0) 35%),
+        radial-gradient(circle at 85% 8%, #f7d8c2 0%, rgba(247, 216, 194, 0) 30%),
+        linear-gradient(140deg, #f9f5ef, #f1e7d8 65%, #ece2d1);
+      min-height: 100vh;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+    }
+
+    .sidebar {
+      padding: 26px 18px;
+      border-right: 1px solid rgba(182, 147, 91, 0.18);
+      background: linear-gradient(180deg, rgba(255, 248, 237, 0.86), rgba(248, 239, 223, 0.78));
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      padding: 16px 14px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(130deg, #fff6e8, #f8ead2);
+      border: 1px solid rgba(195, 91, 44, 0.2);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: 1px;
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      color: var(--text);
+      padding: 12px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.24s ease;
+    }
+
+    .nav-btn:hover {
+      background: rgba(195, 91, 44, 0.1);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(130deg, #c35b2c, #d07b43);
+      color: #fff;
+      transform: translateX(2px);
+      box-shadow: 0 8px 18px rgba(195, 91, 44, 0.28);
+    }
+
+    .main {
+      padding: 18px 24px 26px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .topbar {
+      background: rgba(255, 250, 242, 0.83);
+      border: 1px solid rgba(174, 135, 72, 0.16);
+      border-radius: var(--radius-xl);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--ok);
+      display: inline-block;
+      box-shadow: 0 0 0 8px rgba(47, 143, 91, 0.12);
+      animation: pulse 2.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(47, 143, 91, 0.25); }
+      70% { box-shadow: 0 0 0 9px rgba(47, 143, 91, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(47, 143, 91, 0); }
+    }
+
+    .view {
+      display: none;
+      animation: fadeUp 0.35s ease;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(160deg, #fffefb 20%, #f9f3e8 100%);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .card h3,
+    .card h4 {
+      margin: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .big-num {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--brand);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.24s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.92;
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(120deg, #bb4d1f, #cc7c43);
+      box-shadow: 0 8px 18px rgba(185, 79, 35, 0.32);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: #f8efdf;
+      border: 1px solid #e8d7be;
+    }
+
+    .btn-danger {
+      background: #f8ddda;
+      color: #8f2f25;
+      border: 1px solid #efbcb6;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+
+    .tag.observe {
+      color: #1f5784;
+      background: #e2effa;
+      border-color: #c2ddf4;
+    }
+
+    .tag.pause {
+      color: #676767;
+      background: #f0f0f0;
+      border-color: #dfdfdf;
+    }
+
+    .tag.end {
+      color: #fff;
+      background: #2f2f2f;
+    }
+
+    .status-recorded {
+      border-color: rgba(47, 143, 91, 0.4);
+      background: linear-gradient(150deg, #f4fff8, #eaf8ee);
+    }
+
+    .status-missing {
+      border-color: rgba(207, 139, 39, 0.4);
+      background: linear-gradient(160deg, #fffdf8 35%, #fff2dd 100%);
+    }
+
+    .strategy-list {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .strategy-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fffdf8;
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+
+    .strategy-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(195, 91, 44, 0.35);
+    }
+
+    .strategy-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .kpi-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .heat-cell {
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px solid #e5d7c5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #5f533f;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .heat-cell::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: var(--op, 0.12);
+      background: linear-gradient(130deg, #5f9c52, #2f8550);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid #e6d8c6;
+      background: #fef8ee;
+      color: #5f4f3c;
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab-btn.active {
+      border-color: #cb7a4a;
+      background: #ffe8d9;
+      color: #8d3a19;
+      font-weight: 600;
+    }
+
+    .timeline {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      border: 1px solid var(--line);
+      border-left-width: 6px;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fffdf8;
+    }
+
+    .timeline-item[data-emotion="贪婪"] { border-left-color: #c74334; }
+    .timeline-item[data-emotion="恐惧"] { border-left-color: #2f8f5b; }
+    .timeline-item[data-emotion="冷静"] { border-left-color: #2a6da5; }
+    .timeline-item[data-emotion="犹豫"] { border-left-color: #cf8b27; }
+    .timeline-item[data-emotion="兴奋"] { border-left-color: #cd5f92; }
+    .timeline-item[data-emotion="焦虑"] { border-left-color: #7f5bb4; }
+    .timeline-item[data-emotion="无感"] { border-left-color: #738091; }
+
+    .timeline-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .timeline-detail {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f8f3ea;
+      display: none;
+      font-size: 13px;
+      color: #5b4e3d;
+      line-height: 1.7;
+    }
+
+    .timeline-detail.open {
+      display: block;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: #5f513f;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #ddccb5;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 92px;
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .step-btn {
+      border: 1px solid #dfd0bb;
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-size: 12px;
+      background: #fff8ed;
+      color: #6b5a45;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .step-btn.active {
+      background: linear-gradient(120deg, #c35b2c, #d18a4b);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 8px 18px rgba(195, 91, 44, 0.3);
+    }
+
+    .step-btn.done {
+      background: #eef8f0;
+      border-color: #b7dfc0;
+      color: #2f8f5b;
+    }
+
+    .record-layout {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 270px 1fr;
+      align-items: flex-start;
+    }
+
+    .queue-card {
+      position: sticky;
+      top: 18px;
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .queue-item {
+      border: 1px solid #e5d6c2;
+      background: #fffdf8;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .queue-item.current {
+      border-color: #cb7a4a;
+      background: #fff0e4;
+    }
+
+    .queue-item.done {
+      border-color: #9ed0ad;
+      background: #ebf7ee;
+    }
+
+    .record-step {
+      display: none;
+    }
+
+    .record-step.active {
+      display: block;
+    }
+
+    .inline-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .choice-pill {
+      border: 1px solid #dbc6a8;
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: #fff8ee;
+      font-size: 13px;
+    }
+
+    .choice-pill input {
+      display: none;
+    }
+
+    .choice-pill.active {
+      background: #ffe3d1;
+      border-color: #d07642;
+      color: #8f3e1a;
+      font-weight: 600;
+    }
+
+    .emotion-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .emotion-btn {
+      border: 1px solid #e2d3c0;
+      background: #fffdf8;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+
+    .emotion-btn strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .emotion-btn.active {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+      border-color: currentColor;
+      background: #fff2e6;
+    }
+
+    .emotion-btn[data-tone="danger"] { color: #bf4331; }
+    .emotion-btn[data-tone="ok"] { color: #2f8f5b; }
+    .emotion-btn[data-tone="cold"] { color: #2a6da5; }
+    .emotion-btn[data-tone="warn"] { color: #cf8b27; }
+    .emotion-btn[data-tone="fun"] { color: #b74f86; }
+    .emotion-btn[data-tone="stress"] { color: #7f5bb4; }
+    .emotion-btn[data-tone="mute"] { color: #738091; }
+
+    .summary-box {
+      border: 1px solid #eadac6;
+      background: #fffaf2;
+      border-radius: 12px;
+      padding: 12px;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .record-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #35281c;
+      color: #fff;
+      padding: 11px 14px;
+      border-radius: 10px;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 80;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .chart {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .bar {
+      background: #f6ecdf;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 14px;
+      position: relative;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #d7814f, #b95123);
+      width: var(--w, 30%);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .compare-item {
+      border: 1px solid #e5d8c5;
+      border-radius: 12px;
+      background: #fffdf8;
+      padding: 12px;
+    }
+
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(45, 30, 10, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal {
+      width: min(720px, 95vw);
+      border-radius: 16px;
+      border: 1px solid #e2d1ba;
+      background: #fffdf8;
+      box-shadow: 0 16px 34px rgba(26, 14, 2, 0.26);
+      padding: 16px;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state {
+      border: 1px dashed #d8c3a3;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      color: #816d51;
+      background: #fff7eb;
+    }
+
+    @media (max-width: 1080px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(182, 147, 91, 0.18);
+      }
+
+      .record-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .queue-card {
+        position: static;
+      }
+
+      .stepper {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      .grid.two {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>策略观察台</h1>
+        <p>收盘记录 · 复盘对比 · 认识自己</p>
+      </div>
+      <nav class="nav-list" id="main-nav">
+        <button class="nav-btn active" data-route="dashboard">仪表盘</button>
+        <button class="nav-btn" data-route="strategies">策略管理</button>
+        <button class="nav-btn" data-route="record">每日记录</button>
+        <button class="nav-btn" data-route="strategy-detail">策略详情</button>
+        <button class="nav-btn" data-route="review">回顾分析</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h2 id="page-title">仪表盘</h2>
+        <div class="topbar-meta">
+          <span class="dot"></span>
+          <span id="today-label"></span>
+          <span>设计稿模式</span>
+        </div>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="grid three">
+          <article class="card">
+            <h3>今日记录进度</h3>
+            <p class="muted" id="dashboard-progress-text"></p>
+            <div class="big-num" id="dashboard-progress-big">0 / 0</div>
+            <div style="margin-top:12px; height:10px; border-radius:999px; background:#f0e2cc; overflow:hidden;">
+              <span id="progress-bar-fill" style="display:block; height:100%; width:0; background:linear-gradient(90deg,#2f8f5b,#5aa770);"></span>
+            </div>
+            <button class="btn btn-primary" id="start-daily-record" style="margin-top:12px; width:100%;">开始今日记录</button>
+          </article>
+
+          <article class="card">
+            <h3>节奏提示</h3>
+            <p class="muted">观察中策略会按“未记录优先”排序，点击开始后自动遍历。</p>
+            <div class="kpi-row" id="dashboard-kpi"></div>
+          </article>
+
+          <article class="card">
+            <h3>近期提醒</h3>
+            <ul class="muted" style="line-height:1.8; padding-left:18px; margin:10px 0 0;">
+              <li>连续 2 天未记录会触发提醒</li>
+              <li>情绪“贪婪 + 兴奋”本周占比偏高</li>
+              <li>可在策略详情新增周总结</li>
+            </ul>
+          </article>
+        </div>
+
+        <article class="card" style="margin-top:14px;">
+          <h3>观察中策略</h3>
+          <p class="muted">已记录今日的卡片会标绿，未记录保持高亮提醒。</p>
+          <div class="strategy-list" id="dashboard-strategy-list"></div>
+        </article>
+
+        <article class="card" style="margin-top:14px;">
+          <h3>最近 7 天记录热力图</h3>
+          <p class="muted">颜色越深表示当天记录数越多。</p>
+          <div class="heatmap" id="dashboard-heatmap"></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-strategies">
+        <article class="card">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <h3>策略管理</h3>
+              <p class="muted">卡片布局 + 结构化新建，不再直接编辑原始 JSON。</p>
+            </div>
+            <button class="btn btn-primary" id="open-new-strategy-modal">新建策略</button>
+          </div>
+
+          <div class="tabs" id="strategy-filter-tabs" style="margin-top:12px;">
+            <button class="tab-btn active" data-filter="all">全部</button>
+            <button class="tab-btn" data-filter="observe">观察中</button>
+            <button class="tab-btn" data-filter="pause">暂停中</button>
+            <button class="tab-btn" data-filter="end">已结束</button>
+          </div>
+
+          <div class="strategy-list" id="strategy-manage-list" style="margin-top:12px;"></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-strategy-detail">
+        <article class="card" id="detail-header"></article>
+
+        <article class="card" style="margin-top:12px;">
+          <div class="tabs" id="detail-tabs">
+            <button class="tab-btn active" data-tab="timeline">时间线</button>
+            <button class="tab-btn" data-tab="meta">策略信息</button>
+            <button class="tab-btn" data-tab="summary">阶段性总结</button>
+          </div>
+
+          <div id="detail-panel-timeline" style="margin-top:12px;"></div>
+          <div id="detail-panel-meta" style="display:none; margin-top:12px;"></div>
+          <div id="detail-panel-summary" style="display:none; margin-top:12px;"></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-record">
+        <div class="record-layout">
+          <article class="card queue-card">
+            <h3>待记录队列</h3>
+            <p class="muted" id="queue-desc">从仪表盘进入后，会自动遍历未记录策略。</p>
+            <div class="queue-list" id="record-queue-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="stepper" id="record-stepper"></div>
+
+            <div id="record-step-1" class="record-step active"></div>
+            <div id="record-step-2" class="record-step"></div>
+            <div id="record-step-3" class="record-step"></div>
+            <div id="record-step-4" class="record-step"></div>
+            <div id="record-step-5" class="record-step"></div>
+            <div id="record-step-6" class="record-step"></div>
+
+            <div class="record-actions">
+              <button class="btn btn-secondary" id="record-prev-step">上一步</button>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary" id="record-next-step">下一步</button>
+                <button class="btn btn-primary" id="record-save" style="display:none;">确认并保存</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-review">
+        <article class="card">
+          <h3>回顾与对比（规划版）</h3>
+          <p class="muted">先做信息架构演示：未来会接入真实图表和筛选联动。</p>
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="field">
+              <label>日期范围</label>
+              <input type="text" value="2026-03-01 ~ 2026-03-31" readonly />
+            </div>
+            <div class="field">
+              <label>品种筛选</label>
+              <input type="text" value="全部" readonly />
+            </div>
+            <div class="field">
+              <label>情绪筛选</label>
+              <input type="text" value="贪婪 / 冷静" readonly />
+            </div>
+          </div>
+        </article>
+
+        <div class="grid two" style="margin-top:12px;">
+          <article class="card">
+            <h4>情绪统计</h4>
+            <div class="chart">
+              <div class="muted">贪婪 30%</div>
+              <div class="bar" style="--w:30%;"><span></span></div>
+              <div class="muted">冷静 24%</div>
+              <div class="bar" style="--w:24%;"><span></span></div>
+              <div class="muted">犹豫 18%</div>
+              <div class="bar" style="--w:18%;"><span></span></div>
+              <div class="muted">恐惧 14%</div>
+              <div class="bar" style="--w:14%;"><span></span></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h4>策略对比</h4>
+            <div class="compare-grid">
+              <div class="compare-item">
+                <strong>放量增仓</strong>
+                <div class="kpi-row">
+                  <span>触发: 18</span>
+                  <span>操作: 7</span>
+                  <span>后悔率: 29%</span>
+                </div>
+              </div>
+              <div class="compare-item">
+                <strong>大单跟随</strong>
+                <div class="kpi-row">
+                  <span>触发: 22</span>
+                  <span>操作: 12</span>
+                  <span>后悔率: 16%</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-mask" id="new-strategy-modal-mask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 style="margin:0;">新建策略</h3>
+        <button class="btn btn-secondary" id="close-new-strategy-modal">关闭</button>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>策略名称</label>
+          <input id="new-strategy-name" placeholder="例如：反转确认" />
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select id="new-strategy-status">
+            <option value="observe">观察中</option>
+            <option value="pause">暂停中</option>
+            <option value="end">已结束</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>描述</label>
+          <textarea id="new-strategy-desc" placeholder="简要描述这套策略的观察逻辑"></textarea>
+        </div>
+        <div class="field">
+          <label>想法字段模板</label>
+          <select id="new-strategy-template">
+            <option value="volume_chase">预设：放量增仓</option>
+            <option value="large_order_follow">预设：大单跟随</option>
+            <option value="custom">JSON 自定义（兜底）</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+        <button class="btn btn-primary" id="create-strategy-btn">创建策略</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const today = new Date();
+
+    const strategyData = [
+      {
+        id: "st1",
+        name: "放量增仓",
+        desc: "跟踪成交量、增仓和突破信号，寻找趋势延续机会。",
+        status: "observe",
+        type: "volume_chase",
+        createdAt: "2026-01-03",
+        recordCount: 28,
+        lastRecord: "2026-03-30",
+        recordedToday: false
+      },
+      {
+        id: "st2",
+        name: "大单跟随",
+        desc: "盯盘口大单净流入方向，结合消息验证后择机跟随。",
+        status: "observe",
+        type: "large_order_follow",
+        createdAt: "2026-02-18",
+        recordCount: 19,
+        lastRecord: "2026-03-31",
+        recordedToday: true
+      },
+      {
+        id: "st3",
+        name: "日内回撤修复",
+        desc: "观察急跌后的修复节奏，控制小级别试错成本。",
+        status: "pause",
+        type: "custom",
+        createdAt: "2025-12-12",
+        recordCount: 31,
+        lastRecord: "2026-03-21",
+        recordedToday: false
+      },
+      {
+        id: "st4",
+        name: "趋势尾段退出",
+        desc: "针对盈利单的减仓和退出节奏管理。",
+        status: "end",
+        type: "volume_chase",
+        createdAt: "2025-11-20",
+        recordCount: 42,
+        lastRecord: "2026-02-26",
+        recordedToday: false
+      }
+    ];
+
+    const timelineData = {
+      st1: [
+        {
+          date: "2026-03-30",
+          symbol: "螺纹钢",
+          direction: "做多",
+          action: "开仓",
+          emotion: "贪婪",
+          summary: "放量突破后追单，尾盘有轻微后悔。",
+          detail: "技术面：放量=是，增仓=是，上涨=是。基本面：库存去化预期。消息面：盘后行业会议偏多。"
+        },
+        {
+          date: "2026-03-29",
+          symbol: "沪铜",
+          direction: "观望",
+          action: "未操作",
+          emotion: "冷静",
+          summary: "量能不足，放弃追高，等待下一次确认。",
+          detail: "技术面：放量=否，增仓=否。消息面：海外库存数据中性。"
+        }
+      ],
+      st2: [
+        {
+          date: "2026-03-31",
+          symbol: "焦煤",
+          direction: "做空",
+          action: "减仓",
+          emotion: "犹豫",
+          summary: "大单转向但信号不够干净，先减仓观察。",
+          detail: "大单数据：净卖出增加，信号判断=弱。消息面：政策消息未落地。"
+        }
+      ],
+      st3: [],
+      st4: []
+    };
+
+    const phaseSummaryData = {
+      st1: [
+        {
+          period: "周总结 2026-W13",
+          stats: "观察5天 / 触发3次 / 操作2次 / 盈亏 +480",
+          lesson: "贪婪强度大于4时，第二天优先减仓。"
+        }
+      ],
+      st2: [
+        {
+          period: "月总结 2026-03",
+          stats: "观察22天 / 触发9次 / 操作6次 / 盈亏 +1260",
+          lesson: "大单异动后要等二次确认，减少首根冲动单。"
+        }
+      ],
+      st3: [],
+      st4: []
+    };
+
+    const appState = {
+      route: "dashboard",
+      strategyFilter: "all",
+      detailTab: "timeline",
+      detailStrategyId: "st1",
+      recordStep: 1,
+      recordQueue: [],
+      recordCurrentIndex: 0,
+      recordData: {
+        selectedStrategyId: "",
+        instrument: "",
+        contract: "",
+        direction: "",
+        action: "未操作",
+        price: "",
+        quantity: "",
+        stopLoss: "",
+        stopProfit: "",
+        reason: "",
+        regret: false,
+        sourceChannel: "",
+        sourceNote: "",
+        sourceDate: "",
+        sourceDirection: "",
+        techVolume: false,
+        techPosition: false,
+        techTrend: false,
+        emotion: "",
+        emotionIntensity: 3,
+        marketEmotion: "",
+        confidence: 3,
+        emotionNote: ""
+      }
+    };
+
+    const stepMeta = [
+      { key: 1, label: "1. 选策略" },
+      { key: 2, label: "2. 品种与操作" },
+      { key: 3, label: "3. 来源" },
+      { key: 4, label: "4. 分析面" },
+      { key: 5, label: "5. 情绪面" },
+      { key: 6, label: "6. 确认保存" }
+    ];
+
+    const emotionSet = [
+      { name: "贪婪", icon: "🔥", tone: "danger" },
+      { name: "恐惧", icon: "🌧", tone: "ok" },
+      { name: "犹豫", icon: "🕰", tone: "warn" },
+      { name: "冷静", icon: "🧊", tone: "cold" },
+      { name: "兴奋", icon: "⚡", tone: "fun" },
+      { name: "焦虑", icon: "🌀", tone: "stress" },
+      { name: "无感", icon: "🪨", tone: "mute" }
+    ];
+
+    const pageTitleMap = {
+      dashboard: "仪表盘",
+      strategies: "策略管理",
+      record: "每日记录",
+      "strategy-detail": "策略详情",
+      review: "回顾分析"
+    };
+
+    const routeList = ["dashboard", "strategies", "record", "strategy-detail", "review"];
+
+    function formatDate(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function statusText(status) {
+      if (status === "observe") return "观察中";
+      if (status === "pause") return "暂停中";
+      return "已结束";
+    }
+
+    function typeText(type) {
+      if (type === "volume_chase") return "放量增仓";
+      if (type === "large_order_follow") return "大单跟随";
+      return "JSON 自定义";
+    }
+
+    function setRoute(route) {
+      appState.route = route;
+      routeList.forEach((name) => {
+        const view = document.getElementById(`view-${name}`);
+        if (view) view.classList.toggle("active", name === route);
+      });
+
+      document.querySelectorAll(".nav-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.route === route);
+      });
+
+      document.getElementById("page-title").textContent = pageTitleMap[route] || "页面";
+      renderByRoute(route);
+    }
+
+    function renderByRoute(route) {
+      if (route === "dashboard") renderDashboard();
+      if (route === "strategies") renderStrategyManage();
+      if (route === "strategy-detail") renderStrategyDetail();
+      if (route === "record") renderRecord();
+    }
+
+    function renderDashboard() {
+      const observing = strategyData.filter((item) => item.status === "observe");
+      const doneCount = observing.filter((item) => item.recordedToday).length;
+
+      const progressText = `${observing.length} 个策略中，已记录 ${doneCount} 个，还剩 ${Math.max(observing.length - doneCount, 0)} 个`;
+      document.getElementById("dashboard-progress-text").textContent = progressText;
+      document.getElementById("dashboard-progress-big").textContent = `${doneCount} / ${observing.length}`;
+      document.getElementById("progress-bar-fill").style.width = observing.length ? `${(doneCount / observing.length) * 100}%` : "0%";
+
+      document.getElementById("dashboard-kpi").innerHTML = `
+        <span>观察中: ${observing.length}</span>
+        <span>本周记录: 14</span>
+        <span>连续打卡: 6 天</span>
+      `;
+
+      const dashboardList = document.getElementById("dashboard-strategy-list");
+      dashboardList.innerHTML = observing.map((item) => {
+        const tagClass = item.status === "observe" ? "observe" : item.status === "pause" ? "pause" : "end";
+        return `
+          <div class="strategy-card ${item.recordedToday ? "status-recorded" : "status-missing"}" data-open-detail="${item.id}">
+            <div class="strategy-title">
+              <strong>${item.name}</strong>
+              <span class="tag ${tagClass}">${statusText(item.status)}</span>
+            </div>
+            <p class="muted" style="margin:0 0 8px;">${item.desc}</p>
+            <div class="kpi-row">
+              <span>最近记录: ${item.lastRecord}</span>
+              <span>累计: ${item.recordCount} 条</span>
+              <span>${item.recordedToday ? "今日已记录" : "今日未记录"}</span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-secondary" data-open-detail-btn="${item.id}">查看详情</button>
+              <button class="btn ${item.recordedToday ? "btn-secondary" : "btn-primary"}" data-open-record-btn="${item.id}">${item.recordedToday ? "补充记录" : "去记录"}</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const heatData = [2, 1, 3, 0, 2, 1, 4];
+      document.getElementById("dashboard-heatmap").innerHTML = heatData.map((value, index) => {
+        const day = new Date(today);
+        day.setDate(today.getDate() - (6 - index));
+        const label = `${day.getMonth() + 1}/${day.getDate()}`;
+        const opacity = value === 0 ? 0.08 : Math.min(0.18 + value * 0.17, 0.92);
+        return `<div class="heat-cell" style="--op:${opacity};"><span style="position:relative; z-index:2;">${label}</span></div>`;
+      }).join("");
+    }
+
+    function renderStrategyManage() {
+      const list = document.getElementById("strategy-manage-list");
+      const filtered = strategyData.filter((item) => appState.strategyFilter === "all" || item.status === appState.strategyFilter);
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="empty-state">当前筛选下暂无策略</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map((item) => {
+        const tagClass = item.status === "observe" ? "observe" : item.status === "pause" ? "pause" : "end";
+        return `
+          <article class="strategy-card" data-open-detail="${item.id}">
+            <div class="strategy-title">
+              <div>
+                <strong>${item.name}</strong>
+                <div class="muted" style="margin-top:4px;">${typeText(item.type)}</div>
+              </div>
+              <span class="tag ${tagClass}">${statusText(item.status)}</span>
+            </div>
+            <p class="muted" style="margin:0; min-height:38px;">${item.desc}</p>
+            <div class="kpi-row">
+              <span>创建: ${item.createdAt}</span>
+              <span>累计记录: ${item.recordCount}</span>
+              <span>最后记录: ${item.lastRecord}</span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn btn-secondary" data-open-detail-btn="${item.id}">详情</button>
+              <button class="btn btn-secondary" data-open-record-btn="${item.id}">记录</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderStrategyDetail() {
+      const strategy = strategyData.find((item) => item.id === appState.detailStrategyId) || strategyData[0];
+      appState.detailStrategyId = strategy.id;
+
+      document.getElementById("detail-header").innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 8px;">${strategy.name}</h3>
+            <p class="muted" style="margin:0;">${strategy.desc}</p>
+            <div class="kpi-row">
+              <span>策略类型: ${typeText(strategy.type)}</span>
+              <span>累计记录: ${strategy.recordCount}</span>
+              <span>最后记录: ${strategy.lastRecord}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" data-open-record-btn="${strategy.id}">新增记录</button>
+            <button class="btn btn-danger">删除策略</button>
+          </div>
+        </div>
+      `;
+
+      document.querySelectorAll("#detail-tabs .tab-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === appState.detailTab);
+      });
+
+      const timelinePanel = document.getElementById("detail-panel-timeline");
+      const metaPanel = document.getElementById("detail-panel-meta");
+      const summaryPanel = document.getElementById("detail-panel-summary");
+
+      timelinePanel.style.display = appState.detailTab === "timeline" ? "block" : "none";
+      metaPanel.style.display = appState.detailTab === "meta" ? "block" : "none";
+      summaryPanel.style.display = appState.detailTab === "summary" ? "block" : "none";
+
+      const timelineRows = timelineData[strategy.id] || [];
+      if (!timelineRows.length) {
+        timelinePanel.innerHTML = '<div class="empty-state">暂无记录，点击右上角“新增记录”开始第一条。</div>';
+      } else {
+        timelinePanel.innerHTML = `
+          <div class="timeline">
+            ${timelineRows.map((row, idx) => `
+              <div class="timeline-item" data-emotion="${row.emotion}">
+                <div class="timeline-head">
+                  <div>
+                    <strong>${row.date} · ${row.symbol}</strong>
+                    <div class="muted">${row.direction} / ${row.action} / 情绪: ${row.emotion}</div>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary timeline-toggle-btn" data-target="detail-${idx}">展开</button>
+                    <button class="btn btn-secondary">编辑</button>
+                    <button class="btn btn-danger">删除</button>
+                  </div>
+                </div>
+                <p style="margin:8px 0 0;">${row.summary}</p>
+                <div id="detail-${idx}" class="timeline-detail">${row.detail}</div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      metaPanel.innerHTML = `
+        <div class="form-grid">
+          <div class="field"><label>策略名称</label><input value="${strategy.name}" /></div>
+          <div class="field">
+            <label>状态</label>
+            <select>
+              <option ${strategy.status === "observe" ? "selected" : ""}>观察中</option>
+              <option ${strategy.status === "pause" ? "selected" : ""}>暂停中</option>
+              <option ${strategy.status === "end" ? "selected" : ""}>已结束</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;"><label>策略描述</label><textarea>${strategy.desc}</textarea></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>想法字段模板定义</label>
+            <textarea rows="7">${strategy.type === "volume_chase"
+              ? '{\n  "strategyType": "volume_chase",\n  "fields": ["信息来源", "技术面", "基本面", "消息面", "情绪"]\n}'
+              : strategy.type === "large_order_follow"
+                ? '{\n  "strategyType": "large_order_follow",\n  "fields": ["推荐日期", "推荐理由", "大单数据", "信号判断", "消息面"]\n}'
+                : '{\n  "strategyType": "custom",\n  "fallback": "json_editor"\n}'}
+            </textarea>
+          </div>
+        </div>
+      `;
+
+      const phases = phaseSummaryData[strategy.id] || [];
+      summaryPanel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <p class="muted" style="margin:0;">支持周总结 / 月总结，结构化沉淀阶段经验。</p>
+          <button class="btn btn-primary">新建总结</button>
+        </div>
+        <div style="display:grid; gap:10px; margin-top:10px;">
+          ${phases.length ? phases.map((item) => `
+            <div class="summary-box">
+              <strong>${item.period}</strong>
+              <div>${item.stats}</div>
+              <div>经验教训: ${item.lesson}</div>
+            </div>
+          `).join("") : '<div class="empty-state">暂无阶段性总结</div>'}
+        </div>
+      `;
+    }
+
+    function getCurrentRecordStrategy() {
+      return strategyData.find((item) => item.id === appState.recordData.selectedStrategyId);
+    }
+
+    function renderRecord() {
+      renderRecordStepper();
+      renderRecordQueue();
+      renderRecordStep1();
+      renderRecordStep2();
+      renderRecordStep3();
+      renderRecordStep4();
+      renderRecordStep5();
+      renderRecordStep6();
+
+      for (let i = 1; i <= 6; i += 1) {
+        const el = document.getElementById(`record-step-${i}`);
+        el.classList.toggle("active", appState.recordStep === i);
+      }
+
+      document.getElementById("record-prev-step").style.visibility = appState.recordStep === 1 ? "hidden" : "visible";
+      document.getElementById("record-next-step").style.display = appState.recordStep === 6 ? "none" : "inline-block";
+      document.getElementById("record-save").style.display = appState.recordStep === 6 ? "inline-block" : "none";
+    }
+
+    function renderRecordStepper() {
+      const stepper = document.getElementById("record-stepper");
+      stepper.innerHTML = stepMeta.map((step) => `
+        <button class="step-btn ${appState.recordStep === step.key ? "active" : ""} ${appState.recordStep > step.key ? "done" : ""}" data-jump-step="${step.key}">${step.label}</button>
+      `).join("");
+    }
+
+    function renderRecordQueue() {
+      const queueList = document.getElementById("record-queue-list");
+      const queueDesc = document.getElementById("queue-desc");
+      const queue = appState.recordQueue;
+      if (!queue.length) {
+        queueDesc.textContent = "从仪表盘进入后，会自动遍历未记录策略。";
+        queueList.innerHTML = '<div class="empty-state" style="padding:10px;">暂无自动队列，先在步骤一选策略。</div>';
+        return;
+      }
+
+      if (queue.length === 1) {
+        queueDesc.textContent = "单策略记录模式：保存后将直接返回仪表盘。";
+      } else {
+        queueDesc.textContent = `自动队列模式：共 ${queue.length} 个策略，当前第 ${appState.recordCurrentIndex + 1} 个。`;
+      }
+
+      queueList.innerHTML = queue.map((id, index) => {
+        const item = strategyData.find((s) => s.id === id);
+        if (!item) return "";
+        const className = index < appState.recordCurrentIndex
+          ? "queue-item done"
+          : index === appState.recordCurrentIndex
+            ? "queue-item current"
+            : "queue-item";
+        const marker = index < appState.recordCurrentIndex ? "已完成" : index === appState.recordCurrentIndex ? "进行中" : "待记录";
+        return `<div class="${className}"><strong>${item.name}</strong><div class="muted">${marker}</div></div>`;
+      }).join("");
+    }
+
+    function renderRecordStep1() {
+      const host = document.getElementById("record-step-1");
+      const observing = strategyData.filter((item) => item.status === "observe");
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤一：选择策略</h3>
+        <p class="muted">点击策略卡片进行选择；从仪表盘进入时会自动排好待记录队列。</p>
+        <div class="strategy-list">
+          ${observing.map((item) => `
+            <div class="strategy-card ${appState.recordData.selectedStrategyId === item.id ? "status-missing" : ""}" data-select-strategy="${item.id}">
+              <div class="strategy-title">
+                <strong>${item.name}</strong>
+                <span class="tag observe">${item.recordedToday ? "今日已记录" : "今日待记录"}</span>
+              </div>
+              <p class="muted" style="margin:0;">${item.desc}</p>
+              <div class="kpi-row">
+                <span>模板: ${typeText(item.type)}</span>
+                <span>最后记录: ${item.lastRecord}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderRecordStep2() {
+      const d = appState.recordData;
+      const host = document.getElementById("record-step-2");
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤二：品种与操作</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label>品种名 <span style="color:#bf4331;">*</span></label>
+            <input id="record-instrument" value="${d.instrument}" placeholder="例如：螺纹钢" />
+          </div>
+          <div class="field">
+            <label>合约代码</label>
+            <input id="record-contract" value="${d.contract}" placeholder="例如：RB2610" />
+          </div>
+          <div class="field">
+            <label>方向 <span style="color:#bf4331;">*</span></label>
+            <div class="inline-choices" id="direction-choice-wrap">
+              ${["做多", "做空", "观望"].map((item) => `
+                <label class="choice-pill ${d.direction === item ? "active" : ""}" data-choice-group="direction" data-value="${item}">${item}</label>
+              `).join("")}
+            </div>
+          </div>
+          <div class="field">
+            <label>操作</label>
+            <div class="inline-choices" id="action-choice-wrap">
+              ${["未操作", "开仓", "加仓", "减仓", "平仓"].map((item) => `
+                <label class="choice-pill ${d.action === item ? "active" : ""}" data-choice-group="action" data-value="${item}">${item}</label>
+              `).join("")}
+            </div>
+          </div>
+          <div class="field"><label>价格</label><input id="record-price" value="${d.price}" placeholder="0.00" /></div>
+          <div class="field"><label>数量</label><input id="record-quantity" value="${d.quantity}" placeholder="例如：2 手" /></div>
+          <div class="field"><label>止损</label><input id="record-stop-loss" value="${d.stopLoss}" placeholder="可选" /></div>
+          <div class="field"><label>止盈</label><input id="record-stop-profit" value="${d.stopProfit}" placeholder="可选" /></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>触发原因</label>
+            <textarea id="record-reason" placeholder="写一句触发原因，后面回看更有价值">${d.reason}</textarea>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input id="record-regret" type="checkbox" style="width:auto;" ${d.regret ? "checked" : ""} />
+              是否后悔这次操作
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRecordStep3() {
+      const d = appState.recordData;
+      const strategy = getCurrentRecordStrategy();
+      const type = strategy ? strategy.type : "custom";
+      const host = document.getElementById("record-step-3");
+
+      let typeBlock = "";
+      if (type === "volume_chase") {
+        typeBlock = `
+          <div class="field">
+            <label>信息来源（单选）</label>
+            <select id="record-source-channel">
+              <option ${d.sourceChannel === "盘中观察" ? "selected" : ""}>盘中观察</option>
+              <option ${d.sourceChannel === "行业研报" ? "selected" : ""}>行业研报</option>
+              <option ${d.sourceChannel === "群内交流" ? "selected" : ""}>群内交流</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>详细记录</label>
+            <textarea id="record-source-note" placeholder="记录触发时刻、关键信号和上下文">${d.sourceNote}</textarea>
+          </div>
+        `;
+      } else if (type === "large_order_follow") {
+        typeBlock = `
+          <div class="field">
+            <label>国泰君安推荐日期</label>
+            <input id="record-source-date" value="${d.sourceDate}" placeholder="YYYY-MM-DD" />
+          </div>
+          <div class="field">
+            <label>推荐方向</label>
+            <select id="record-source-direction">
+              <option ${d.sourceDirection === "做多" ? "selected" : ""}>做多</option>
+              <option ${d.sourceDirection === "做空" ? "selected" : ""}>做空</option>
+              <option ${d.sourceDirection === "观望" ? "selected" : ""}>观望</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>推荐理由</label>
+            <textarea id="record-source-note" placeholder="记录核心逻辑、时间窗口和风险点">${d.sourceNote}</textarea>
+          </div>
+        `;
+      } else {
+        typeBlock = `
+          <div class="field" style="grid-column:1/-1;">
+            <label>JSON 自定义记录（兜底）</label>
+            <textarea id="record-source-note" rows="8" placeholder='{"signal":"...","reason":"..."}'>${d.sourceNote}</textarea>
+          </div>
+        `;
+      }
+
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤三：来源</h3>
+        <p class="muted">当前策略类型：${strategy ? typeText(strategy.type) : "未选择"}</p>
+        <div class="form-grid">${typeBlock}</div>
+      `;
+    }
+
+    function renderRecordStep4() {
+      const d = appState.recordData;
+      const strategy = getCurrentRecordStrategy();
+      const type = strategy ? strategy.type : "custom";
+      const host = document.getElementById("record-step-4");
+
+      let block = "";
+      if (type === "volume_chase") {
+        block = `
+          <div class="field" style="grid-column:1/-1;">
+            <label>技术面三开关</label>
+            <div class="inline-choices">
+              <label class="choice-pill ${d.techVolume ? "active" : ""}" data-toggle-flag="techVolume">放量</label>
+              <label class="choice-pill ${d.techPosition ? "active" : ""}" data-toggle-flag="techPosition">增仓</label>
+              <label class="choice-pill ${d.techTrend ? "active" : ""}" data-toggle-flag="techTrend">上涨</label>
+            </div>
+          </div>
+          <div class="field"><label>关键价位</label><input placeholder="现价 / 支撑 / 阻力" /></div>
+          <div class="field" style="grid-column:1/-1;"><label>基本面（可动态增删）</label><textarea placeholder="示例：库存下降；基差走强"></textarea></div>
+          <div class="field" style="grid-column:1/-1;"><label>消息面（可动态增删）</label><textarea placeholder="示例：政策预期偏多"></textarea></div>
+        `;
+      } else if (type === "large_order_follow") {
+        block = `
+          <div class="field" style="grid-column:1/-1;"><label>大单数据（动态行）</label><textarea placeholder="2026-03-31 / +4200 / 增强\n2026-03-30 / +1200 / 走弱"></textarea></div>
+          <div class="field"><label>大单信号判断</label><select><option>强</option><option selected>中</option><option>弱</option></select></div>
+          <div class="field"><label>是否确认开关</label><select><option>是</option><option selected>否</option></select></div>
+          <div class="field" style="grid-column:1/-1;"><label>消息面列表</label><textarea placeholder="示例：产业会议预期提升需求"></textarea></div>
+        `;
+      } else {
+        block = `
+          <div class="field" style="grid-column:1/-1;"><label>分析面自定义内容</label><textarea rows="8" placeholder="可填写技术/基本/消息面的任何结构"></textarea></div>
+        `;
+      }
+
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤四：分析面</h3>
+        <p class="muted">按策略类型动态展示专属字段组件；无专属组件时回退到 JSON。</p>
+        <div class="form-grid">${block}</div>
+      `;
+    }
+
+    function renderRecordStep5() {
+      const d = appState.recordData;
+      const host = document.getElementById("record-step-5");
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤五：情绪面</h3>
+        <p class="muted">这一页刻意做成“有仪式感”的按钮选择，鼓励真实记录。</p>
+        <div class="emotion-grid">
+          ${emotionSet.map((item) => `
+            <button class="emotion-btn ${d.emotion === item.name ? "active" : ""}" data-emotion="${item.name}" data-tone="${item.tone}">
+              <div style="font-size:22px;">${item.icon}</div>
+              <strong>${item.name}</strong>
+            </button>
+          `).join("")}
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>情绪强度（1-5）</label>
+            <input id="emotion-intensity" type="range" min="1" max="5" value="${d.emotionIntensity}" />
+            <div class="muted">当前: ${d.emotionIntensity}</div>
+          </div>
+          <div class="field">
+            <label>市场情绪</label>
+            <select id="market-emotion">
+              <option ${d.marketEmotion === "亢奋" ? "selected" : ""}>亢奋</option>
+              <option ${d.marketEmotion === "中性" ? "selected" : ""}>中性</option>
+              <option ${d.marketEmotion === "恐慌" ? "selected" : ""}>恐慌</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>跟随信心（1-5）</label>
+            <input id="follow-confidence" type="range" min="1" max="5" value="${d.confidence}" />
+            <div class="muted">当前: ${d.confidence}</div>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>情绪备注</label>
+            <textarea id="emotion-note" placeholder="写下当时真实想法，比如：害怕错过、担心回撤、纪律执行情况">${d.emotionNote}</textarea>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRecordStep6() {
+      const d = appState.recordData;
+      const strategy = getCurrentRecordStrategy();
+      const host = document.getElementById("record-step-6");
+      host.innerHTML = `
+        <h3 style="margin-top:0;">步骤六：确认并保存</h3>
+        <p class="muted">确认后会自动跳转到下一个待记录策略，或返回仪表盘。</p>
+        <div class="summary-box">
+          <div><strong>策略:</strong> ${strategy ? strategy.name : "未选择"}</div>
+          <div><strong>品种:</strong> ${d.instrument || "未填写"} ${d.contract ? `(${d.contract})` : ""}</div>
+          <div><strong>方向 / 操作:</strong> ${d.direction || "未填写"} / ${d.action || "未填写"}</div>
+          <div><strong>价格 / 数量:</strong> ${d.price || "-"} / ${d.quantity || "-"}</div>
+          <div><strong>情绪:</strong> ${d.emotion || "未选择"}（强度 ${d.emotionIntensity}）</div>
+          <div><strong>后悔开关:</strong> ${d.regret ? "是" : "否"}</div>
+          <div><strong>触发原因:</strong> ${d.reason || "无"}</div>
+          <div><strong>情绪备注:</strong> ${d.emotionNote || "无"}</div>
+        </div>
+      `;
+    }
+
+    function beginDailyRecordFromDashboard() {
+      const queue = strategyData
+        .filter((item) => item.status === "observe" && !item.recordedToday)
+        .map((item) => item.id);
+
+      if (!queue.length) {
+        showToast("今天观察中策略已全部记录");
+        return;
+      }
+
+      appState.recordQueue = queue;
+      appState.recordCurrentIndex = 0;
+      appState.recordData.selectedStrategyId = queue[0];
+      appState.recordStep = 2;
+      showToast(`已载入队列，共 ${queue.length} 个策略`);
+      setRoute("record");
+    }
+
+    function openRecordForStrategy(id) {
+      appState.recordQueue = [id];
+      appState.recordCurrentIndex = 0;
+      appState.recordData.selectedStrategyId = id;
+      appState.recordStep = 2;
+      setRoute("record");
+    }
+
+    function validateRecordStep() {
+      const d = appState.recordData;
+      if (appState.recordStep === 1 && !d.selectedStrategyId) {
+        showToast("请先选择一个策略");
+        return false;
+      }
+      if (appState.recordStep === 2) {
+        if (!d.instrument.trim()) {
+          showToast("品种名是必填项");
+          return false;
+        }
+        if (!d.direction.trim()) {
+          showToast("方向是必填项");
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function saveRecordDraft() {
+      const d = appState.recordData;
+      const strategy = getCurrentRecordStrategy();
+      if (!strategy) {
+        showToast("请先选择策略");
+        return;
+      }
+
+      strategy.recordedToday = true;
+      strategy.recordCount += 1;
+      strategy.lastRecord = formatDate(today);
+
+      if (!timelineData[strategy.id]) timelineData[strategy.id] = [];
+      timelineData[strategy.id].unshift({
+        date: formatDate(today),
+        symbol: d.instrument || "未填写",
+        direction: d.direction || "观望",
+        action: d.action || "未操作",
+        emotion: d.emotion || "无感",
+        summary: `${d.reason || "无触发原因"}${d.regret ? "（有后悔）" : ""}`,
+        detail: `来源: ${d.sourceChannel || d.sourceDate || "未填写"}；情绪备注: ${d.emotionNote || "无"}`
+      });
+
+      if (appState.recordQueue.length && appState.recordCurrentIndex < appState.recordQueue.length - 1) {
+        appState.recordCurrentIndex += 1;
+        appState.recordData.selectedStrategyId = appState.recordQueue[appState.recordCurrentIndex];
+        appState.recordData.instrument = "";
+        appState.recordData.contract = "";
+        appState.recordData.direction = "";
+        appState.recordData.action = "未操作";
+        appState.recordData.reason = "";
+        appState.recordData.emotion = "";
+        appState.recordData.emotionNote = "";
+        appState.recordStep = 2;
+        showToast("已保存，已切换到下一个待记录策略");
+        renderRecord();
+        renderDashboard();
+        return;
+      }
+
+      appState.recordStep = 1;
+      appState.recordQueue = [];
+      appState.recordCurrentIndex = 0;
+      showToast("记录已保存，今日流程完成");
+      setRoute("dashboard");
+      renderDashboard();
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById("toast");
+      toast.textContent = text;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1800);
+    }
+
+    function bindGlobalEvents() {
+      document.getElementById("today-label").textContent = `${formatDate(today)} · 收盘后记录`;
+
+      document.getElementById("main-nav").addEventListener("click", (event) => {
+        const btn = event.target.closest(".nav-btn");
+        if (!btn) return;
+        setRoute(btn.dataset.route);
+      });
+
+      document.addEventListener("click", (event) => {
+        const recordBtn = event.target.closest("[data-open-record-btn]");
+        if (recordBtn) {
+          openRecordForStrategy(recordBtn.dataset.openRecordBtn);
+          return;
+        }
+
+        const detailBtn = event.target.closest("[data-open-detail-btn]");
+        if (detailBtn) {
+          appState.detailStrategyId = detailBtn.dataset.openDetailBtn;
+          setRoute("strategy-detail");
+          return;
+        }
+
+        const detailCard = event.target.closest("[data-open-detail]");
+        if (detailCard) {
+          appState.detailStrategyId = detailCard.dataset.openDetail;
+          setRoute("strategy-detail");
+          return;
+        }
+
+        const jumpStepBtn = event.target.closest("[data-jump-step]");
+        if (jumpStepBtn && appState.route === "record") {
+          appState.recordStep = Number(jumpStepBtn.dataset.jumpStep);
+          renderRecord();
+          return;
+        }
+
+        const selectStrategyBtn = event.target.closest("[data-select-strategy]");
+        if (selectStrategyBtn && appState.route === "record") {
+          appState.recordData.selectedStrategyId = selectStrategyBtn.dataset.selectStrategy;
+          renderRecord();
+          return;
+        }
+
+        const choice = event.target.closest("[data-choice-group]");
+        if (choice && appState.route === "record") {
+          const group = choice.dataset.choiceGroup;
+          const value = choice.dataset.value;
+          if (group === "direction") appState.recordData.direction = value;
+          if (group === "action") appState.recordData.action = value;
+          renderRecordStep2();
+          return;
+        }
+
+        const toggleFlag = event.target.closest("[data-toggle-flag]");
+        if (toggleFlag && appState.route === "record") {
+          const key = toggleFlag.dataset.toggleFlag;
+          appState.recordData[key] = !appState.recordData[key];
+          renderRecordStep4();
+          return;
+        }
+
+        const emotionBtn = event.target.closest("[data-emotion]");
+        if (emotionBtn && appState.route === "record") {
+          appState.recordData.emotion = emotionBtn.dataset.emotion;
+          renderRecordStep5();
+          return;
+        }
+
+        const timelineBtn = event.target.closest(".timeline-toggle-btn");
+        if (timelineBtn) {
+          const target = document.getElementById(timelineBtn.dataset.target);
+          if (!target) return;
+          target.classList.toggle("open");
+          timelineBtn.textContent = target.classList.contains("open") ? "收起" : "展开";
+          return;
+        }
+      });
+
+      document.getElementById("start-daily-record").addEventListener("click", beginDailyRecordFromDashboard);
+
+      document.getElementById("strategy-filter-tabs").addEventListener("click", (event) => {
+        const tab = event.target.closest("[data-filter]");
+        if (!tab) return;
+        appState.strategyFilter = tab.dataset.filter;
+        document.querySelectorAll("#strategy-filter-tabs .tab-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn === tab);
+        });
+        renderStrategyManage();
+      });
+
+      document.getElementById("detail-tabs").addEventListener("click", (event) => {
+        const tab = event.target.closest("[data-tab]");
+        if (!tab) return;
+        appState.detailTab = tab.dataset.tab;
+        renderStrategyDetail();
+      });
+
+      document.getElementById("record-prev-step").addEventListener("click", () => {
+        if (appState.recordStep > 1) {
+          appState.recordStep -= 1;
+          renderRecord();
+        }
+      });
+
+      document.getElementById("record-next-step").addEventListener("click", () => {
+        syncRecordFormFields();
+        if (!validateRecordStep()) return;
+        if (appState.recordStep < 6) {
+          appState.recordStep += 1;
+          renderRecord();
+        }
+      });
+
+      document.getElementById("record-save").addEventListener("click", () => {
+        syncRecordFormFields();
+        saveRecordDraft();
+      });
+
+      document.getElementById("open-new-strategy-modal").addEventListener("click", () => {
+        document.getElementById("new-strategy-modal-mask").style.display = "flex";
+      });
+
+      document.getElementById("close-new-strategy-modal").addEventListener("click", () => {
+        document.getElementById("new-strategy-modal-mask").style.display = "none";
+      });
+
+      document.getElementById("create-strategy-btn").addEventListener("click", () => {
+        const name = document.getElementById("new-strategy-name").value.trim();
+        const desc = document.getElementById("new-strategy-desc").value.trim();
+        const status = document.getElementById("new-strategy-status").value;
+        const template = document.getElementById("new-strategy-template").value;
+
+        if (!name) {
+          showToast("请填写策略名称");
+          return;
+        }
+
+        strategyData.unshift({
+          id: `st${Date.now()}`,
+          name,
+          desc: desc || "暂无描述",
+          status,
+          type: template,
+          createdAt: formatDate(today),
+          recordCount: 0,
+          lastRecord: "-",
+          recordedToday: false
+        });
+
+        document.getElementById("new-strategy-modal-mask").style.display = "none";
+        document.getElementById("new-strategy-name").value = "";
+        document.getElementById("new-strategy-desc").value = "";
+        showToast("新策略已创建（演示数据）");
+        renderStrategyManage();
+        renderDashboard();
+      });
+
+      document.getElementById("new-strategy-modal-mask").addEventListener("click", (event) => {
+        if (event.target.id === "new-strategy-modal-mask") {
+          event.currentTarget.style.display = "none";
+        }
+      });
+
+      document.addEventListener("input", (event) => {
+        if (appState.route !== "record") return;
+
+        const id = event.target.id;
+        if (!id) return;
+
+        if (id === "record-instrument") appState.recordData.instrument = event.target.value;
+        if (id === "record-contract") appState.recordData.contract = event.target.value;
+        if (id === "record-price") appState.recordData.price = event.target.value;
+        if (id === "record-quantity") appState.recordData.quantity = event.target.value;
+        if (id === "record-stop-loss") appState.recordData.stopLoss = event.target.value;
+        if (id === "record-stop-profit") appState.recordData.stopProfit = event.target.value;
+        if (id === "record-reason") appState.recordData.reason = event.target.value;
+        if (id === "record-source-note") appState.recordData.sourceNote = event.target.value;
+        if (id === "record-source-date") appState.recordData.sourceDate = event.target.value;
+        if (id === "emotion-intensity") appState.recordData.emotionIntensity = Number(event.target.value);
+        if (id === "follow-confidence") appState.recordData.confidence = Number(event.target.value);
+        if (id === "emotion-note") appState.recordData.emotionNote = event.target.value;
+      });
+
+      document.addEventListener("change", (event) => {
+        if (appState.route !== "record") return;
+        const id = event.target.id;
+        if (!id) return;
+
+        if (id === "record-regret") appState.recordData.regret = Boolean(event.target.checked);
+        if (id === "record-source-channel") appState.recordData.sourceChannel = event.target.value;
+        if (id === "record-source-direction") appState.recordData.sourceDirection = event.target.value;
+        if (id === "market-emotion") appState.recordData.marketEmotion = event.target.value;
+      });
+    }
+
+    function syncRecordFormFields() {
+      const byId = (id) => document.getElementById(id);
+
+      if (byId("record-instrument")) appState.recordData.instrument = byId("record-instrument").value;
+      if (byId("record-contract")) appState.recordData.contract = byId("record-contract").value;
+      if (byId("record-price")) appState.recordData.price = byId("record-price").value;
+      if (byId("record-quantity")) appState.recordData.quantity = byId("record-quantity").value;
+      if (byId("record-stop-loss")) appState.recordData.stopLoss = byId("record-stop-loss").value;
+      if (byId("record-stop-profit")) appState.recordData.stopProfit = byId("record-stop-profit").value;
+      if (byId("record-reason")) appState.recordData.reason = byId("record-reason").value;
+      if (byId("record-source-note")) appState.recordData.sourceNote = byId("record-source-note").value;
+      if (byId("record-source-channel")) appState.recordData.sourceChannel = byId("record-source-channel").value;
+      if (byId("record-source-date")) appState.recordData.sourceDate = byId("record-source-date").value;
+      if (byId("record-source-direction")) appState.recordData.sourceDirection = byId("record-source-direction").value;
+      if (byId("record-regret")) appState.recordData.regret = Boolean(byId("record-regret").checked);
+      if (byId("emotion-intensity")) appState.recordData.emotionIntensity = Number(byId("emotion-intensity").value);
+      if (byId("follow-confidence")) appState.recordData.confidence = Number(byId("follow-confidence").value);
+      if (byId("market-emotion")) appState.recordData.marketEmotion = byId("market-emotion").value;
+      if (byId("emotion-note")) appState.recordData.emotionNote = byId("emotion-note").value;
+    }
+
+    function init() {
+      bindGlobalEvents();
+      renderDashboard();
+      renderStrategyManage();
+      renderStrategyDetail();
+      renderRecord();
+      setRoute("dashboard");
+    }
+
+    init();
+  </script>
+</body>
+</html>
